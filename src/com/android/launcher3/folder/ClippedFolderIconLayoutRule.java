@@ -7,8 +7,13 @@ public class ClippedFolderIconLayoutRule {
     public static final int MAX_NUM_ITEMS_IN_PREVIEW = 9;
     /** Folders up to this size keep the classic circular preview. */
     public static final int CIRCULAR_MAX_ITEMS = 4;
-    private static final int GRID_COLUMNS = 3;
-    private static final float GRID_ITEM_SCALE = 0.30f;
+    /** Large folder: four big icons in a 2x2 block, remaining apps as a mini strip. */
+    private static final int BIG_ITEM_COUNT = 4;
+    private static final int MINI_ITEMS_PER_ROW = 5;
+    private static final float BIG_CELL_FRACTION = 0.40f;
+    private static final float BIG_ITEM_FRACTION = 0.34f;
+    private static final float MINI_ITEM_FRACTION = 0.15f;
+    private static final float GRID_ITEM_SCALE = BIG_ITEM_FRACTION;
     private static final int MIN_NUM_ITEMS_IN_PREVIEW = 2;
 
     public static final float MIN_SCALE = 0.44f;
@@ -63,34 +68,60 @@ public class ClippedFolderIconLayoutRule {
      */
     public PreviewItemDrawingParams computePreviewItemDrawingParams(int index, int curNumItems,
             PreviewItemDrawingParams params) {
-        // Folders with more than CIRCULAR_MAX_ITEMS apps are drawn on a 3x3 grid.
+        // Folders with more than CIRCULAR_MAX_ITEMS apps are drawn as a large folder:
+        // four big icons in a 2x2 block with a strip of mini icons underneath.
         boolean gridLayout = curNumItems > CIRCULAR_MAX_ITEMS && !mForceSmall;
-        float totalScale = gridLayout ? GRID_ITEM_SCALE * mBaselineIconScale
-                : scaleForItem(curNumItems, 0);
         float transX;
         float transY;
+
+        if (gridLayout) {
+            int slot;
+            if (index == EXIT_INDEX) {
+                slot = MAX_NUM_ITEMS_IN_PREVIEW - 1;
+            } else if (index == ENTER_INDEX) {
+                slot = BIG_ITEM_COUNT;
+            } else if (index >= MAX_NUM_ITEMS_IN_PREVIEW) {
+                slot = MAX_NUM_ITEMS_IN_PREVIEW - 1;
+            } else {
+                slot = index;
+            }
+            boolean big = slot < BIG_ITEM_COUNT;
+            float fraction = big ? BIG_ITEM_FRACTION : MINI_ITEM_FRACTION;
+            float totalScale = fraction * mBaselineIconScale;
+            float iconSize = fraction * mAvailableSpace;
+            if (big) {
+                int row = slot / 2;
+                int col = slot % 2;
+                float cell = BIG_CELL_FRACTION * mAvailableSpace;
+                transX = col * cell + (cell - iconSize) / 2f;
+                transY = row * cell + (cell - iconSize) / 2f;
+            } else {
+                int mini = slot - BIG_ITEM_COUNT;
+                float cell = mAvailableSpace / MINI_ITEMS_PER_ROW;
+                transX = mini * cell + (cell - iconSize) / 2f;
+                transY = (BIG_CELL_FRACTION * 2f) * mAvailableSpace + (cell - iconSize) / 2f;
+            }
+            if (params == null) {
+                params = new PreviewItemDrawingParams(transX, transY, totalScale);
+            } else {
+                params.update(transX, transY, totalScale);
+            }
+            return params;
+        }
+
+        float totalScale = scaleForItem(curNumItems, 0);
 
         if (index == EXIT_INDEX) {
             // 0 1 * <-- Exit position (row 0, col 2)
             // 2 3
-            if (gridLayout) {
-                getLargeGridPosition(CIRCULAR_MAX_ITEMS, mTmpPoint);
-            } else {
-                getGridPosition(0, 2, mTmpPoint);
-            }
+            getGridPosition(0, 2, mTmpPoint);
         } else if (index == ENTER_INDEX) {
             // 0 1
             // 2 3 * <-- Enter position (row 1, col 2)
-            if (gridLayout) {
-                getLargeGridPosition(MAX_NUM_ITEMS_IN_PREVIEW - 1, mTmpPoint);
-            } else {
-                getGridPosition(1, 2, mTmpPoint);
-            }
+            getGridPosition(1, 2, mTmpPoint);
         } else if (index >= MAX_NUM_ITEMS_IN_PREVIEW) {
             // Items beyond those displayed in the preview are animated to the center
             mTmpPoint[0] = mTmpPoint[1] = mAvailableSpace / 2 - (mIconSize * totalScale) / 2;
-        } else if (gridLayout) {
-            getLargeGridPosition(index, mTmpPoint);
         } else {
             getPosition(index, curNumItems, mTmpPoint);
         }
@@ -123,7 +154,7 @@ public class ClippedFolderIconLayoutRule {
         if (numItemsInPage <= CIRCULAR_MAX_ITEMS) {
             getPosition(index, numItemsInPage, mTmpPoint);
         } else if (numItemsInPage <= MAX_NUM_ITEMS_IN_PREVIEW) {
-            getLargeGridPosition(Math.min(index, MAX_NUM_ITEMS_IN_PREVIEW - 1), mTmpPoint);
+            getGridPosition(index / mNumFolderColumns, index % mNumFolderColumns, mTmpPoint);
         } else {
             getGridPosition(index / mNumFolderColumns, index % mNumFolderColumns, mTmpPoint);
         }
@@ -139,19 +170,6 @@ public class ClippedFolderIconLayoutRule {
         return params;
     }
 
-
-    /**
-     * Positions a preview item on the large (3x3) folder grid, used when a folder holds more
-     * than {@link #CIRCULAR_MAX_ITEMS} apps.
-     */
-    private void getLargeGridPosition(int slot, float[] result) {
-        int row = slot / GRID_COLUMNS;
-        int col = slot % GRID_COLUMNS;
-        float iconSize = mIconSize * GRID_ITEM_SCALE * mBaselineIconScale;
-        float cell = mAvailableSpace / GRID_COLUMNS;
-        result[0] = col * cell + (cell - iconSize) / 2f;
-        result[1] = row * cell + (cell - iconSize) / 2f;
-    }
 
     /**
      * Builds a grid based on the positioning of the items when there are
