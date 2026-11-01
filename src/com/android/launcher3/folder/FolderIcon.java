@@ -675,6 +675,7 @@ public class FolderIcon extends FrameLayout implements FloatingIconViewCompanion
     }
 
     private void updatePreviewItems(boolean animate) {
+        mPreviewLayoutRule.setForceSmall(!DesiFolderStyle.isLarge(getContext(), mInfo));
         mPreviewItemManager.updatePreviewItems(animate);
         mCurrentPreviewItems.clear();
         mCurrentPreviewItems.addAll(getPreviewItemsOnPage(0));

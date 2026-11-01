@@ -35,6 +35,8 @@ import com.android.launcher3.R;
 import com.android.launcher3.SecondaryDropTarget;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.PrivateProfileManager;
+import com.android.launcher3.folder.DesiFolderStyle;
+import com.android.launcher3.folder.FolderIcon;
 import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
@@ -127,6 +129,12 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
 
     public boolean hasHandlerForAction(int action) {
         return mAccessibilityActionId == action;
+    }
+
+    void refreshFolderIcon() {
+        if (mOriginalView instanceof FolderIcon) {
+            ((FolderIcon) mOriginalView).onItemsChanged(true);
+        }
     }
 
     public interface Factory<T extends ActivityContext> {
@@ -270,6 +278,72 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
         }
         return new RemoveApp<>(context, itemInfo, originalView);
     };
+
+    public static final Factory<ActivityContext> SHRINK_FOLDER =
+            (context, itemInfo, originalView) -> {
+                if (isHomeLocked(context) || originalView == null) {
+                    return null;
+                }
+                if (!(itemInfo instanceof FolderInfo)) {
+                    return null;
+                }
+                if (itemInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                    return null;
+                }
+                if (!DesiFolderStyle.isLarge(context.asContext(), (FolderInfo) itemInfo)) {
+                    return null;
+                }
+                return new ShrinkFolder<>(context, itemInfo, originalView);
+            };
+
+    public static final Factory<ActivityContext> ENLARGE_FOLDER =
+            (context, itemInfo, originalView) -> {
+                if (isHomeLocked(context) || originalView == null) {
+                    return null;
+                }
+                if (!(itemInfo instanceof FolderInfo)) {
+                    return null;
+                }
+                if (itemInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                    return null;
+                }
+                if (DesiFolderStyle.isLarge(context.asContext(), (FolderInfo) itemInfo)) {
+                    return null;
+                }
+                return new EnlargeFolder<>(context, itemInfo, originalView);
+            };
+
+    /** Collapses a large folder back to the classic 2x2 preview. */
+    public static class ShrinkFolder<T extends ActivityContext> extends SystemShortcut<T> {
+
+        public ShrinkFolder(T target, ItemInfo itemInfo, @NonNull View originalView) {
+            super(R.drawable.ic_remove_no_shadow, R.string.shrink_folder_label, target, itemInfo,
+                    originalView, false);
+        }
+
+        @Override
+        public void onClick(View view) {
+            AbstractFloatingView.closeAllOpenViewsExcept(mTarget, TYPE_FOLDER);
+            DesiFolderStyle.setLarge(view.getContext(), (FolderInfo) mItemInfo, false);
+            refreshFolderIcon();
+        }
+    }
+
+    /** Turns a folder into a large folder with a 3x3 preview. */
+    public static class EnlargeFolder<T extends ActivityContext> extends SystemShortcut<T> {
+
+        public EnlargeFolder(T target, ItemInfo itemInfo, @NonNull View originalView) {
+            super(R.drawable.ic_apps, R.string.enlarge_folder_label, target, itemInfo,
+                    originalView, false);
+        }
+
+        @Override
+        public void onClick(View view) {
+            AbstractFloatingView.closeAllOpenViewsExcept(mTarget, TYPE_FOLDER);
+            DesiFolderStyle.setLarge(view.getContext(), (FolderInfo) mItemInfo, true);
+            refreshFolderIcon();
+        }
+    }
 
     public static final Factory<ActivityContext> OPEN_FOLDER = (context, itemInfo, originalView) -> {
         if (!(itemInfo instanceof FolderInfo) || originalView == null) {

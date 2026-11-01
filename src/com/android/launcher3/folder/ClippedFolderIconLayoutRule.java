@@ -29,8 +29,14 @@ public class ClippedFolderIconLayoutRule {
     private float mRadius;
     private float mIconSize;
     private boolean mIsRtl;
+    private boolean mForceSmall = false;
     private float mBaselineIconScale;
     private int mNumFolderColumns;
+
+    /** When true the folder keeps the classic 2x2 preview even if it holds many apps. */
+    public void setForceSmall(boolean forceSmall) {
+        mForceSmall = forceSmall;
+    }
 
     /**
      * initialize the layout rule
@@ -58,7 +64,7 @@ public class ClippedFolderIconLayoutRule {
     public PreviewItemDrawingParams computePreviewItemDrawingParams(int index, int curNumItems,
             PreviewItemDrawingParams params) {
         // Folders with more than CIRCULAR_MAX_ITEMS apps are drawn on a 3x3 grid.
-        boolean gridLayout = curNumItems > CIRCULAR_MAX_ITEMS;
+        boolean gridLayout = curNumItems > CIRCULAR_MAX_ITEMS && !mForceSmall;
         float totalScale = gridLayout ? GRID_ITEM_SCALE * mBaselineIconScale
                 : scaleForItem(curNumItems, 0);
         float transX;
@@ -230,7 +236,7 @@ public class ClippedFolderIconLayoutRule {
         float scale;
         if (page > 0) {
             scale = MIN_SCALE;
-        } else if (numItems > CIRCULAR_MAX_ITEMS) {
+        } else if (numItems > CIRCULAR_MAX_ITEMS && !mForceSmall) {
             scale = GRID_ITEM_SCALE;
         } else if (numItems <= 3) {
             scale = MAX_SCALE;

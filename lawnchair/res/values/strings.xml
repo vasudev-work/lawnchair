@@ -852,6 +852,8 @@
     <string name="search_provider_qmamu" translatable="false">Qmamu</string>
     <string name="open_folder_label">Open folder</string>
     <string name="ungroup_folder_label">Ungroup</string>
+    <string name="shrink_folder_label">Shrink folder</string>
+    <string name="enlarge_folder_label">Enlarge folder</string>
     <string name="search_provider_ibharat" translatable="false">iBharat</string>
 
     <!-- Work profile tab shown as "Private Space" -->
