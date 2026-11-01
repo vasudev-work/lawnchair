@@ -4,7 +4,11 @@ import com.android.launcher3.Flags;
 
 public class ClippedFolderIconLayoutRule {
 
-    public static final int MAX_NUM_ITEMS_IN_PREVIEW = 4;
+    public static final int MAX_NUM_ITEMS_IN_PREVIEW = 9;
+    /** Folders up to this size keep the classic circular preview. */
+    public static final int CIRCULAR_MAX_ITEMS = 4;
+    private static final int GRID_COLUMNS = 3;
+    private static final float GRID_ITEM_SCALE = 0.30f;
     private static final int MIN_NUM_ITEMS_IN_PREVIEW = 2;
 
     public static final float MIN_SCALE = 0.44f;
@@ -53,21 +57,34 @@ public class ClippedFolderIconLayoutRule {
      */
     public PreviewItemDrawingParams computePreviewItemDrawingParams(int index, int curNumItems,
             PreviewItemDrawingParams params) {
-        float totalScale = scaleForItem(curNumItems, 0);
+        // Folders with more than CIRCULAR_MAX_ITEMS apps are drawn on a 3x3 grid.
+        boolean gridLayout = curNumItems > CIRCULAR_MAX_ITEMS;
+        float totalScale = gridLayout ? GRID_ITEM_SCALE * mBaselineIconScale
+                : scaleForItem(curNumItems, 0);
         float transX;
         float transY;
 
         if (index == EXIT_INDEX) {
             // 0 1 * <-- Exit position (row 0, col 2)
             // 2 3
-            getGridPosition(0, 2, mTmpPoint);
+            if (gridLayout) {
+                getLargeGridPosition(CIRCULAR_MAX_ITEMS, mTmpPoint);
+            } else {
+                getGridPosition(0, 2, mTmpPoint);
+            }
         } else if (index == ENTER_INDEX) {
             // 0 1
             // 2 3 * <-- Enter position (row 1, col 2)
-            getGridPosition(1, 2, mTmpPoint);
+            if (gridLayout) {
+                getLargeGridPosition(MAX_NUM_ITEMS_IN_PREVIEW - 1, mTmpPoint);
+            } else {
+                getGridPosition(1, 2, mTmpPoint);
+            }
         } else if (index >= MAX_NUM_ITEMS_IN_PREVIEW) {
             // Items beyond those displayed in the preview are animated to the center
             mTmpPoint[0] = mTmpPoint[1] = mAvailableSpace / 2 - (mIconSize * totalScale) / 2;
+        } else if (gridLayout) {
+            getLargeGridPosition(index, mTmpPoint);
         } else {
             getPosition(index, curNumItems, mTmpPoint);
         }
@@ -97,8 +114,10 @@ public class ClippedFolderIconLayoutRule {
         float transX;
         float transY;
 
-        if (numItemsInPage <= MAX_NUM_ITEMS_IN_PREVIEW) {
+        if (numItemsInPage <= CIRCULAR_MAX_ITEMS) {
             getPosition(index, numItemsInPage, mTmpPoint);
+        } else if (numItemsInPage <= MAX_NUM_ITEMS_IN_PREVIEW) {
+            getLargeGridPosition(Math.min(index, MAX_NUM_ITEMS_IN_PREVIEW - 1), mTmpPoint);
         } else {
             getGridPosition(index / mNumFolderColumns, index % mNumFolderColumns, mTmpPoint);
         }
@@ -114,6 +133,19 @@ public class ClippedFolderIconLayoutRule {
         return params;
     }
 
+
+    /**
+     * Positions a preview item on the large (3x3) folder grid, used when a folder holds more
+     * than {@link #CIRCULAR_MAX_ITEMS} apps.
+     */
+    private void getLargeGridPosition(int slot, float[] result) {
+        int row = slot / GRID_COLUMNS;
+        int col = slot % GRID_COLUMNS;
+        float iconSize = mIconSize * GRID_ITEM_SCALE * mBaselineIconScale;
+        float cell = mAvailableSpace / GRID_COLUMNS;
+        result[0] = col * cell + (cell - iconSize) / 2f;
+        result[1] = row * cell + (cell - iconSize) / 2f;
+    }
 
     /**
      * Builds a grid based on the positioning of the items when there are
@@ -184,7 +216,7 @@ public class ClippedFolderIconLayoutRule {
         } else {
             // Increase radius from 0 up to MAX_RADIUS_DILATION as the number of items increases.
             return mRadius * (1 + radiusDilation * (numItems - MIN_NUM_ITEMS_IN_PREVIEW)
-                    / (MAX_NUM_ITEMS_IN_PREVIEW - MIN_NUM_ITEMS_IN_PREVIEW));
+                    / (CIRCULAR_MAX_ITEMS - MIN_NUM_ITEMS_IN_PREVIEW));
         }
     }
 
@@ -198,6 +230,8 @@ public class ClippedFolderIconLayoutRule {
         float scale;
         if (page > 0) {
             scale = MIN_SCALE;
+        } else if (numItems > CIRCULAR_MAX_ITEMS) {
+            scale = GRID_ITEM_SCALE;
         } else if (numItems <= 3) {
             scale = MAX_SCALE;
         } else {
@@ -209,7 +243,7 @@ public class ClippedFolderIconLayoutRule {
     private float radiusDilationForItems(int numItems) {
         if (numItems == 3) {
             return 0.15f;
-        } else if (numItems == MAX_NUM_ITEMS_IN_PREVIEW) {
+        } else if (numItems == CIRCULAR_MAX_ITEMS) {
             return 0.12f;
         } else {
             return 0;

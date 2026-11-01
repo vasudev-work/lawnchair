@@ -35,6 +35,7 @@ import com.android.launcher3.R;
 import com.android.launcher3.SecondaryDropTarget;
 import com.android.launcher3.Utilities;
 import com.android.launcher3.allapps.PrivateProfileManager;
+import com.android.launcher3.model.data.FolderInfo;
 import com.android.launcher3.model.data.ItemInfo;
 import com.android.launcher3.model.data.WorkspaceItemInfo;
 import com.android.launcher3.pm.UserCache;
@@ -269,6 +270,63 @@ public abstract class SystemShortcut<T extends ActivityContext> extends ItemInfo
         }
         return new RemoveApp<>(context, itemInfo, originalView);
     };
+
+    public static final Factory<ActivityContext> OPEN_FOLDER = (context, itemInfo, originalView) -> {
+        if (!(itemInfo instanceof FolderInfo) || originalView == null) {
+            return null;
+        }
+        return new OpenFolder<>(context, itemInfo, originalView);
+    };
+
+    public static final Factory<ActivityContext> UNGROUP_FOLDER =
+            (context, itemInfo, originalView) -> {
+                if (isHomeLocked(context)) {
+                    return null;
+                }
+                if (!(itemInfo instanceof FolderInfo) || originalView == null) {
+                    return null;
+                }
+                if (itemInfo.container != LauncherSettings.Favorites.CONTAINER_DESKTOP) {
+                    return null;
+                }
+                return new UngroupFolder<>(context, itemInfo, originalView);
+            };
+
+    /** Opens a home screen folder. */
+    public static class OpenFolder<T extends ActivityContext> extends SystemShortcut<T> {
+
+        public OpenFolder(T target, ItemInfo itemInfo, @NonNull View originalView) {
+            super(R.drawable.ic_apps, R.string.open_folder_label, target, itemInfo,
+                    originalView, false);
+        }
+
+        @Override
+        public void onClick(View view) {
+            AbstractFloatingView.closeAllOpenViewsExcept(mTarget, TYPE_FOLDER);
+            mOriginalView.performClick();
+        }
+    }
+
+    /**
+     * Dissolves a folder. The folder disappears from the home screen and the apps inside it are
+     * available again in the app drawer.
+     */
+    public static class UngroupFolder<T extends ActivityContext> extends SystemShortcut<T> {
+
+        public UngroupFolder(T target, ItemInfo itemInfo, @NonNull View originalView) {
+            super(R.drawable.ic_remove_no_shadow, R.string.ungroup_folder_label, target,
+                    itemInfo, originalView, false);
+        }
+
+        @Override
+        public void onClick(View view) {
+            AbstractFloatingView.closeAllOpenViewsExcept(mTarget, TYPE_FOLDER);
+            DropTargetHandler dropTargetHandler =
+                    ActivityContext.lookupContext(view.getContext()).getDropTargetHandler();
+            dropTargetHandler.prepareToUndoDelete();
+            dropTargetHandler.onDeleteComplete(mItemInfo, mOriginalView);
+        }
+    }
 
     public static class RemoveApp<T extends ActivityContext> extends SystemShortcut<T> {
 
