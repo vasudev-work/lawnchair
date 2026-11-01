@@ -50,19 +50,15 @@ interface WebSearchProvider {
     companion object WebSearchProviderCompanion {
         fun values(): List<WebSearchProvider> = listOf(
             GoogleWebSearchProvider,
-            DuckDuckGoWebSearchProvider,
-            StartPageWebSearchProvider,
-            StartPageEUWebSearchProvider,
-            KagiWebSearchProvider,
+            QmamuWebSearchProvider,
+            IBharatWebSearchProvider,
             CustomWebSearchProvider,
         )
 
         fun fromString(value: String): WebSearchProvider = when (value) {
             "google" -> GoogleWebSearchProvider
-            "duckduckgo" -> DuckDuckGoWebSearchProvider
-            "startpage" -> StartPageWebSearchProvider
-            "startpage-eu" -> StartPageEUWebSearchProvider
-            "kagi" -> KagiWebSearchProvider
+            "qmamu" -> QmamuWebSearchProvider
+            "ibharat" -> IBharatWebSearchProvider
             "custom" -> CustomWebSearchProvider
             else -> GoogleWebSearchProvider
         }

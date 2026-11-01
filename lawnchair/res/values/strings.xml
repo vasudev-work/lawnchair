@@ -849,6 +849,14 @@
 
     <!-- Search providers -->
     <string name="search_provider_app_search">App search</string>
+    <string name="search_provider_qmamu" translatable="false">Qmamu</string>
+    <string name="search_provider_ibharat" translatable="false">iBharat</string>
+
+    <!-- Work profile tab shown as "Private Space" -->
+    <string name="all_apps_work_tab">Private Space</string>
+    <string name="all_apps_work_tab_content_description">Private Space apps tab</string>
+    <string name="work_folder_name">Private Space</string>
+    <string name="widgets_full_sheet_work_tab">Private Space</string>
     <string name="search_provider_startpage" translatable="false">Startpage</string>
     <string name="search_provider_startpage_eu" translatable="false">Startpage (EU)</string>
     <string name="search_provider_google" translatable="false">Google</string>
